@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # ---------------------------------------------------------------------------
-# default — 프로젝트 기본 설정 원스텝 인스톨러 (Mac / Linux / WSL)
+# agent — 프로젝트 기본 설정 원스텝 인스톨러 (Mac / Linux / WSL)
 #
 # 사용법:
 #   curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash
@@ -42,13 +42,20 @@ die()  { printf "${c_err}✗ %s${c_reset}\n" "$*" >&2; exit 1; }
 
 # ---------- 1. 사전 확인 ----------
 say "사전 확인"
-command -v python3 >/dev/null 2>&1 || die "python3 가 필요합니다 (3.9+)"
+PYTHON=""
+if command -v python3 >/dev/null 2>&1; then
+  PYTHON=python3
+elif command -v python >/dev/null 2>&1; then
+  PYTHON=python
+else
+  die "python3 (또는 python) 가 필요합니다 (3.9+)"
+fi
 command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1 || die "pip 가 필요합니다"
 PIP=$(command -v pip3 || command -v pip)
-PYV=$(python3 -c 'import sys;print("%d.%d"%sys.version_info[:2])')
-PYV_NUM=$(python3 -c 'import sys;v=sys.version_info;print(v[0]*100+v[1])')
+PYV=$("$PYTHON" -c 'import sys;print("%d.%d"%sys.version_info[:2])')
+PYV_NUM=$("$PYTHON" -c 'import sys;v=sys.version_info;print(v[0]*100+v[1])')
 [ "$PYV_NUM" -lt 309 ] && die "python 3.9+ 가 필요합니다 (현재: $PYV)"
-ok "python3 $PYV / pip 사용 가능"
+ok "$PYTHON $PYV / pip 사용 가능"
 
 # ---------- 2. engram 설치 ----------
 if [ "$SKIP_ENGRAM" -eq 0 ]; then
@@ -67,7 +74,7 @@ if [ "$SKIP_ENGRAM" -eq 0 ]; then
   # DB 초기화
   say "~/.engram/memory.db 초기화"
   mkdir -p "$HOME/.engram"
-  python3 -m engram.cli.app --db "$HOME/.engram/memory.db" init >/dev/null 2>&1 \
+  "$PYTHON" -m engram.cli.app --db "$HOME/.engram/memory.db" init >/dev/null 2>&1 \
     && ok "engram DB 초기화 완료" \
     || warn "engram DB 초기화 스킵 (이미 존재하거나 CLI 미지원)"
 else

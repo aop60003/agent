@@ -1,5 +1,5 @@
 ﻿# ---------------------------------------------------------------------------
-# default — 프로젝트 기본 설정 원스텝 인스톨러 (Windows PowerShell)
+# agent — 프로젝트 기본 설정 원스텝 인스톨러 (Windows PowerShell)
 #
 # 사용법:
 #   iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1 | iex

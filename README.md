@@ -1,6 +1,6 @@
-# default
+# agent
 
-프로젝트용 **AGENTS.md 기본 템플릿 + Engram 메모리 시스템**을 한 줄 명령으로 설치합니다.
+프로젝트용 **AGENTS.md 기본 템플릿 + 스킬 시스템 + Engram 메모리**를 한 줄 명령으로 설치합니다.
 
 ---
 
@@ -32,10 +32,12 @@ iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1 | iex
 ```bash
 curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --force
 curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --skip-engram
+curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --global
 ```
 
 ```powershell
 iex "& { $(iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1) } -Force"
+iex "& { $(iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1) } -Global"
 ```
 
 ---
@@ -102,7 +104,7 @@ Commands / Testing / Project Structure / Code Style / Git Workflow / Safety Boun
 
 ```
 agent/
-├── AGENTS.md            # 통합 프로젝트 기본 템플릿 (~260줄)
+├── AGENTS.md            # 통합 프로젝트 기본 템플릿 (~290줄)
 ├── install.sh           # Mac/Linux/WSL 인스톨러
 ├── install.ps1          # Windows PowerShell 인스톨러
 ├── README.md            # 이 파일
@@ -118,18 +120,30 @@ agent/
 
 ### Mac / Linux / WSL
 ```bash
+# 프로젝트 레벨
 rm -f AGENTS.md CLAUDE.md
 rm -rf .claude .agents
-pip uninstall memorytrace        # engram 제거 (선택)
-rm -rf ~/.engram                  # 메모리 DB 삭제 (선택)
+
+# 유저 레벨 (--global 로 설치한 경우)
+rm -rf ~/.claude/skills ~/.agents/skills
+
+# engram (선택)
+pip uninstall memorytrace
+rm -rf ~/.engram
 ```
 
 ### Windows (PowerShell)
 ```powershell
+# 프로젝트 레벨
 Remove-Item AGENTS.md, CLAUDE.md -ErrorAction SilentlyContinue
 Remove-Item .claude, .agents -Recurse -ErrorAction SilentlyContinue
-pip uninstall memorytrace                                          # engram 제거 (선택)
-Remove-Item "$HOME\.engram" -Recurse -ErrorAction SilentlyContinue # 메모리 DB 삭제 (선택)
+
+# 유저 레벨 (-Global 로 설치한 경우)
+Remove-Item "$HOME\.claude\skills", "$HOME\.agents\skills" -Recurse -ErrorAction SilentlyContinue
+
+# engram (선택)
+pip uninstall memorytrace
+Remove-Item "$HOME\.engram" -Recurse -ErrorAction SilentlyContinue
 ```
 
 ---
