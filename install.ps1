@@ -1,4 +1,4 @@
-# ---------------------------------------------------------------------------
+﻿# ---------------------------------------------------------------------------
 # default — 프로젝트 기본 설정 원스텝 인스톨러 (Windows PowerShell)
 #
 # 사용법:
@@ -35,7 +35,7 @@ Say "사전 확인"
 $python = Get-Command python -ErrorAction SilentlyContinue
 if (-not $python) { $python = Get-Command python3 -ErrorAction SilentlyContinue }
 if (-not $python) { Die "python (3.9+) 이 필요합니다" }
-$pyv = & $python.Source -c "import sys;print('%d.%d'%sys.version_info[:2])"
+$pyv = & $python.Source -c "import sys;v=sys.version_info;print(str(v[0])+'.'+str(v[1]))"
 $pyvParts = $pyv.Split('.')
 if ([int]$pyvParts[0] -lt 3 -or ([int]$pyvParts[0] -eq 3 -and [int]$pyvParts[1] -lt 9)) {
   Die "python 3.9+ 가 필요합니다 (현재: $pyv)"
