@@ -2,16 +2,17 @@
 # default — 프로젝트 기본 설정 원스텝 인스톨러 (Windows PowerShell)
 #
 # 사용법:
-#   iwr https://raw.githubusercontent.com/aop60003/default/main/install.ps1 | iex
-#   iex "& { $(iwr https://raw.githubusercontent.com/aop60003/default/main/install.ps1) } -Force"
+#   iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1 | iex
+#   iex "& { $(iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1) } -Force"
 #
 # 수행 작업:
 #   1. 사전 확인: python, pip
 #   2. engram 메모리 시스템 설치 (pip)
 #   3. %USERPROFILE%\.engram\memory.db 초기화
 #   4. AGENTS.md / CLAUDE.md 배치
-#   5. .claude\workspace 디렉토리 생성
-#   6. .gitignore 업데이트
+#   5. 스킬 배치: superpowers (obra/superpowers) + 커스텀 (review, sprint, deploy)
+#   6. .claude\workspace 디렉토리 생성
+#   7. .gitignore 업데이트
 # ---------------------------------------------------------------------------
 
 param(
@@ -20,7 +21,7 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
-$RepoRaw = "https://raw.githubusercontent.com/aop60003/default/main"
+$RepoRaw = "https://raw.githubusercontent.com/aop60003/agent/main"
 
 function Say($msg)  { Write-Host "==> $msg"  -ForegroundColor Cyan }
 function Ok($msg)   { Write-Host "[OK] $msg" -ForegroundColor Green }
@@ -87,7 +88,52 @@ if ((Test-Path "CLAUDE.md") -and -not $Force) {
   Ok "CLAUDE.md 생성 (AGENTS.md 참조)"
 }
 
-# ---------- 4. .claude 워크스페이스 ----------
+# ---------- 4. 스킬 배치 ----------
+
+# 4a. superpowers 스킬 (github.com/obra/superpowers)
+Say "superpowers 스킬 다운로드 (obra/superpowers)"
+$spInstalled = $false
+if ((Test-Path ".agents\skills\brainstorming\SKILL.md") -and -not $Force) {
+  Warn "superpowers 스킬 이미 존재 — 스킵 (-Force 로 덮어쓰기)"
+} else {
+  $spTmp = Join-Path $env:TEMP "superpowers-$(Get-Random)"
+  New-Item -ItemType Directory -Force -Path $spTmp | Out-Null
+  $spZip = Join-Path $spTmp "superpowers.zip"
+  Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/obra/superpowers/archive/refs/heads/main.zip" -OutFile $spZip
+  Expand-Archive -Path $spZip -DestinationPath $spTmp -Force
+  $spSkillsDir = Join-Path $spTmp "superpowers-main\skills"
+  $spCount = 0
+  foreach ($skillDir in Get-ChildItem $spSkillsDir -Directory) {
+    $skill = $skillDir.Name
+    New-Item -ItemType Directory -Force -Path ".agents\skills\$skill" | Out-Null
+    New-Item -ItemType Directory -Force -Path ".claude\skills\$skill" | Out-Null
+    Copy-Item "$($skillDir.FullName)\*" ".agents\skills\$skill\" -Recurse -Force
+    Copy-Item "$($skillDir.FullName)\*" ".claude\skills\$skill\" -Recurse -Force
+    $spCount++
+  }
+  Remove-Item $spTmp -Recurse -Force
+  $spInstalled = $true
+  Ok "superpowers 스킬 배치 완료 ($spCount 개)"
+}
+
+# 4b. 커스텀 스킬 (review, sprint, deploy)
+Say "커스텀 스킬 배치"
+$customSkills = @("review", "sprint", "deploy")
+foreach ($skill in $customSkills) {
+  New-Item -ItemType Directory -Force -Path ".agents\skills\$skill" | Out-Null
+  New-Item -ItemType Directory -Force -Path ".claude\skills\$skill" | Out-Null
+  $agentSkill = ".agents\skills\$skill\SKILL.md"
+  $claudeSkill = ".claude\skills\$skill\SKILL.md"
+  if ((Test-Path $agentSkill) -and -not $Force) {
+    Warn "$agentSkill 이미 존재 — 스킵 (-Force 로 덮어쓰기)"
+  } else {
+    Invoke-WebRequest -UseBasicParsing -Uri "$RepoRaw/skills/$skill/SKILL.md" -OutFile $agentSkill
+    Copy-Item $agentSkill $claudeSkill -Force
+    Ok "$skill 스킬 배치 완료"
+  }
+}
+
+# ---------- 5. .claude 워크스페이스 ----------
 Say ".claude 디렉토리 준비"
 New-Item -ItemType Directory -Force -Path ".claude\workspace" | Out-Null
 New-Item -ItemType Directory -Force -Path ".claude\skills"    | Out-Null
@@ -96,7 +142,7 @@ if (-not (Test-Path ".claude\workspace\.gitkeep")) {
 }
 Ok ".claude\workspace, .claude\skills 준비 완료"
 
-# ---------- 5. .gitignore ----------
+# ---------- 6. .gitignore ----------
 if ((Test-Path ".git") -or (Test-Path ".gitignore")) {
   Say ".gitignore 업데이트"
   $entries = @(".engram/", ".claude/workspace/")

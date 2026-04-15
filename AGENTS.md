@@ -220,13 +220,43 @@ engram remember "이름" "사실"  # 수동 사실 기록
 
 Engram이 없는 환경에서는 이 섹션을 무시할 것.
 
-### 12.2 Available Skills (선택)
-<!-- TODO: 프로젝트 skill 목록 -->
-<!-- 예:
-- `/sprint` — 대규모 기능 구현 사이클
-- `/review` — 단계별 코드리뷰 프로토콜
-- `/deploy` — 배포 워크플로우
--->
+### 12.2 Skills
+
+프로젝트 스킬은 두 곳에 배치된다 (Claude Code + Codex 호환):
+- `.agents/skills/<name>/SKILL.md` — 정본 (편집은 여기서)
+- `.claude/skills/<name>/SKILL.md` — Claude Code용 복사본
+
+**Superpowers 스킬** (출처: [obra/superpowers](https://github.com/obra/superpowers)):
+
+| 스킬 | 용도 |
+|------|------|
+| `brainstorming` | 설계 탐색 (코드 작성 전) |
+| `writing-plans` | 구현 계획 작성 |
+| `executing-plans` | 계획 단계별 실행 |
+| `test-driven-development` | Red-Green-Refactor TDD |
+| `systematic-debugging` | 체계적 근본 원인 추적 |
+| `verification-before-completion` | 증거 기반 완료 선언 |
+| `dispatching-parallel-agents` | 병렬 에이전트 배치 |
+| `subagent-driven-development` | 태스크별 서브에이전트 |
+| `using-git-worktrees` | 격리 워크스페이스 |
+| `requesting-code-review` | 리뷰 요청 |
+| `receiving-code-review` | 리뷰 피드백 처리 |
+| `finishing-a-development-branch` | 브랜치 통합/정리 |
+| `using-superpowers` | 세션 시작 시 스킬 활용 설정 |
+| `writing-skills` | 커스텀 스킬 생성/편집 |
+
+**커스텀 스킬:**
+
+| 스킬 | 용도 |
+|------|------|
+| `review` | 5단계 구조화 코드 리뷰 |
+| `sprint` | 전체 개발 사이클 관리 |
+| `deploy` | 배포 워크플로우 |
+
+**스킬 추가 방법:**
+1. `.agents/skills/<name>/SKILL.md` 생성 (YAML frontmatter: `name`, `description` 필수)
+2. `.claude/skills/<name>/`에 동일 파일 복사
+<!-- TODO: 프로젝트 커스텀 스킬 추가 -->
 
 ### 12.3 Long-Running Tasks
 - 대규모 기능 구현 시 체크포인트 활용

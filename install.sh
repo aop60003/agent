@@ -3,21 +3,22 @@
 # default — 프로젝트 기본 설정 원스텝 인스톨러 (Mac / Linux / WSL)
 #
 # 사용법:
-#   curl -fsSL https://raw.githubusercontent.com/aop60003/default/main/install.sh | bash
-#   curl -fsSL https://raw.githubusercontent.com/aop60003/default/main/install.sh | bash -s -- --force
+#   curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --force
 #
 # 수행 작업:
-#   1. 사전 확인: python3, pip, git
+#   1. 사전 확인: python3, pip
 #   2. engram 메모리 시스템 설치 (pip)
 #   3. ~/.engram/memory.db 초기화
 #   4. 현재 폴더에 AGENTS.md / CLAUDE.md 생성
-#   5. .claude/workspace 디렉토리 생성
-#   6. .gitignore에 .engram 추가 (선택)
+#   5. 스킬 배치: superpowers (obra/superpowers) + 커스텀 (review, sprint, deploy)
+#   6. .claude/workspace 디렉토리 생성
+#   7. .gitignore 업데이트
 # ---------------------------------------------------------------------------
 
 set -euo pipefail
 
-REPO_RAW="https://raw.githubusercontent.com/aop60003/default/main"
+REPO_RAW="https://raw.githubusercontent.com/aop60003/agent/main"
 FORCE=0
 SKIP_ENGRAM=0
 
@@ -104,13 +105,50 @@ else
   ok "CLAUDE.md 생성 (AGENTS.md 참조)"
 fi
 
-# ---------- 4. .claude 워크스페이스 ----------
+# ---------- 4. 스킬 배치 ----------
+
+# 4a. superpowers 스킬 (github.com/obra/superpowers)
+say "superpowers 스킬 다운로드 (obra/superpowers)"
+SP_URL="https://github.com/obra/superpowers/archive/refs/heads/main.tar.gz"
+SP_TMP=$(mktemp -d)
+SP_INSTALLED=0
+if [ -f ".agents/skills/brainstorming/SKILL.md" ] && [ "$FORCE" -eq 0 ]; then
+  warn "superpowers 스킬 이미 존재 — 스킵 (--force 로 덮어쓰기)"
+else
+  download "$SP_URL" "$SP_TMP/superpowers.tar.gz"
+  tar xzf "$SP_TMP/superpowers.tar.gz" -C "$SP_TMP"
+  for skill_dir in "$SP_TMP"/superpowers-main/skills/*/; do
+    skill=$(basename "$skill_dir")
+    mkdir -p ".agents/skills/$skill" ".claude/skills/$skill"
+    cp -r "$skill_dir"* ".agents/skills/$skill/"
+    cp -r "$skill_dir"* ".claude/skills/$skill/"
+  done
+  SP_INSTALLED=1
+  ok "superpowers 스킬 배치 완료 ($(ls -d "$SP_TMP"/superpowers-main/skills/*/ | wc -l)개)"
+fi
+rm -rf "$SP_TMP"
+
+# 4b. 커스텀 스킬 (review, sprint, deploy)
+say "커스텀 스킬 배치"
+CUSTOM_SKILLS="review sprint deploy"
+for skill in $CUSTOM_SKILLS; do
+  mkdir -p ".agents/skills/$skill" ".claude/skills/$skill"
+  if [ -f ".agents/skills/$skill/SKILL.md" ] && [ "$FORCE" -eq 0 ]; then
+    warn ".agents/skills/$skill — 이미 존재 — 스킵 (--force 로 덮어쓰기)"
+  else
+    download "$REPO_RAW/skills/$skill/SKILL.md" ".agents/skills/$skill/SKILL.md"
+    cp ".agents/skills/$skill/SKILL.md" ".claude/skills/$skill/SKILL.md"
+    ok "$skill 스킬 배치 완료"
+  fi
+done
+
+# ---------- 5. .claude 워크스페이스 ----------
 say ".claude 디렉토리 준비"
 mkdir -p .claude/workspace .claude/skills
 touch .claude/workspace/.gitkeep
 ok ".claude/workspace, .claude/skills 준비 완료"
 
-# ---------- 5. .gitignore 업데이트 ----------
+# ---------- 6. .gitignore 업데이트 ----------
 if [ -d .git ] || [ -f .gitignore ]; then
   say ".gitignore 업데이트"
   for entry in ".engram/" ".claude/workspace/"; do
@@ -135,5 +173,5 @@ cat <<'NEXT'
        engram who "이름"
 
 재실행:
-  curl -fsSL https://raw.githubusercontent.com/aop60003/default/main/install.sh | bash -s -- --force
+  curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --force
 NEXT

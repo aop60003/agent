@@ -9,13 +9,13 @@
 ### Mac / Linux / WSL
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/aop60003/default/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash
 ```
 
 ### Windows (PowerShell)
 
 ```powershell
-iwr https://raw.githubusercontent.com/aop60003/default/main/install.ps1 | iex
+iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1 | iex
 ```
 
 ---
@@ -29,12 +29,12 @@ iwr https://raw.githubusercontent.com/aop60003/default/main/install.ps1 | iex
 
 예시:
 ```bash
-curl -fsSL https://raw.githubusercontent.com/aop60003/default/main/install.sh | bash -s -- --force
-curl -fsSL https://raw.githubusercontent.com/aop60003/default/main/install.sh | bash -s -- --skip-engram
+curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --force
+curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --skip-engram
 ```
 
 ```powershell
-iex "& { $(iwr https://raw.githubusercontent.com/aop60003/default/main/install.ps1) } -Force"
+iex "& { $(iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1) } -Force"
 ```
 
 ---
@@ -47,8 +47,11 @@ iex "& { $(iwr https://raw.githubusercontent.com/aop60003/default/main/install.p
 4. **템플릿 배치**
    - `AGENTS.md` — 프로젝트 기본 에이전트 가이드
    - `CLAUDE.md` — AGENTS.md 참조 포인터
-5. **디렉토리 준비** — `.claude/workspace`, `.claude/skills`
-6. **.gitignore 업데이트** — `.engram/`, `.claude/workspace/` 추가
+5. **스킬 배치** — `.agents/skills/` (정본) + `.claude/skills/` (복사본)
+   - Superpowers 14개 ([obra/superpowers](https://github.com/obra/superpowers)에서 다운로드)
+   - 커스텀 3개 (review, sprint, deploy)
+6. **디렉토리 준비** — `.claude/workspace`
+7. **.gitignore 업데이트** — `.engram/`, `.claude/workspace/` 추가
 
 ---
 
@@ -97,11 +100,15 @@ Commands / Testing / Project Structure / Code Style / Git Workflow / Safety Boun
 ## 파일 구성
 
 ```
-default/
-├── AGENTS.md       # 통합 프로젝트 기본 템플릿 (~260줄)
-├── install.sh      # Mac/Linux/WSL 인스톨러
-├── install.ps1     # Windows PowerShell 인스톨러
-└── README.md       # 이 파일
+agent/
+├── AGENTS.md            # 통합 프로젝트 기본 템플릿 (~260줄)
+├── install.sh           # Mac/Linux/WSL 인스톨러
+├── install.ps1          # Windows PowerShell 인스톨러
+├── README.md            # 이 파일
+└── skills/              # 커스텀 스킬 템플릿 (superpowers는 설치 시 다운로드)
+    ├── review/SKILL.md  # 5단계 코드 리뷰
+    ├── sprint/SKILL.md  # 전체 개발 사이클
+    └── deploy/SKILL.md  # 배포 워크플로우
 ```
 
 ---
@@ -111,7 +118,7 @@ default/
 ### Mac / Linux / WSL
 ```bash
 rm -f AGENTS.md CLAUDE.md
-rm -rf .claude
+rm -rf .claude .agents
 pip uninstall memorytrace        # engram 제거 (선택)
 rm -rf ~/.engram                  # 메모리 DB 삭제 (선택)
 ```
@@ -119,7 +126,7 @@ rm -rf ~/.engram                  # 메모리 DB 삭제 (선택)
 ### Windows (PowerShell)
 ```powershell
 Remove-Item AGENTS.md, CLAUDE.md -ErrorAction SilentlyContinue
-Remove-Item .claude -Recurse -ErrorAction SilentlyContinue
+Remove-Item .claude, .agents -Recurse -ErrorAction SilentlyContinue
 pip uninstall memorytrace                                          # engram 제거 (선택)
 Remove-Item "$HOME\.engram" -Recurse -ErrorAction SilentlyContinue # 메모리 DB 삭제 (선택)
 ```
