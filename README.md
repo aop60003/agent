@@ -104,7 +104,7 @@ Commands / Testing / Project Structure / Code Style / Git Workflow / Safety Boun
 
 ```
 agent/
-├── AGENTS.md            # 통합 프로젝트 기본 템플릿 (~290줄)
+├── AGENTS.md            # 통합 프로젝트 기본 템플릿 (~170줄)
 ├── install.sh           # Mac/Linux/WSL 인스톨러
 ├── install.ps1          # Windows PowerShell 인스톨러
 ├── README.md            # 이 파일
