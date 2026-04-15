@@ -4,20 +4,22 @@
 # 사용법:
 #   iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1 | iex
 #   iex "& { $(iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1) } -Force"
+#   iex "& { $(iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1) } -Global"
 #
 # 수행 작업:
 #   1. 사전 확인: python, pip
 #   2. engram 메모리 시스템 설치 (pip)
 #   3. %USERPROFILE%\.engram\memory.db 초기화
 #   4. AGENTS.md / CLAUDE.md 배치
-#   5. 스킬 배치: superpowers (obra/superpowers) + 커스텀 (review, sprint, deploy)
+#   5. 스킬 배치: superpowers + 커스텀 (-Global: 유저 레벨, 기본: 프로젝트 레벨)
 #   6. .claude\workspace 디렉토리 생성
 #   7. .gitignore 업데이트
 # ---------------------------------------------------------------------------
 
 param(
   [switch]$Force,
-  [switch]$SkipEngram
+  [switch]$SkipEngram,
+  [switch]$Global
 )
 
 $ErrorActionPreference = "Stop"
@@ -90,10 +92,21 @@ if ((Test-Path "CLAUDE.md") -and -not $Force) {
 
 # ---------- 4. 스킬 배치 ----------
 
+# 설치 위치 결정
+if ($Global) {
+  $agentsSkills = Join-Path $HOME ".agents\skills"
+  $claudeSkills = Join-Path $HOME ".claude\skills"
+  Say "스킬 설치 위치: 유저 레벨 ($agentsSkills + $claudeSkills)"
+} else {
+  $agentsSkills = ".agents\skills"
+  $claudeSkills = ".claude\skills"
+  Say "스킬 설치 위치: 프로젝트 레벨 (.agents\skills + .claude\skills)"
+}
+
 # 4a. superpowers 스킬 (github.com/obra/superpowers)
 Say "superpowers 스킬 다운로드 (obra/superpowers)"
-$spInstalled = $false
-if ((Test-Path ".agents\skills\brainstorming\SKILL.md") -and -not $Force) {
+$spCheck = Join-Path $agentsSkills "brainstorming\SKILL.md"
+if ((Test-Path $spCheck) -and -not $Force) {
   Warn "superpowers 스킬 이미 존재 — 스킵 (-Force 로 덮어쓰기)"
 } else {
   $spTmp = Join-Path $env:TEMP "superpowers-$(Get-Random)"
@@ -105,14 +118,15 @@ if ((Test-Path ".agents\skills\brainstorming\SKILL.md") -and -not $Force) {
   $spCount = 0
   foreach ($skillDir in Get-ChildItem $spSkillsDir -Directory) {
     $skill = $skillDir.Name
-    New-Item -ItemType Directory -Force -Path ".agents\skills\$skill" | Out-Null
-    New-Item -ItemType Directory -Force -Path ".claude\skills\$skill" | Out-Null
-    Copy-Item "$($skillDir.FullName)\*" ".agents\skills\$skill\" -Recurse -Force
-    Copy-Item "$($skillDir.FullName)\*" ".claude\skills\$skill\" -Recurse -Force
+    $aTarget = Join-Path $agentsSkills $skill
+    $cTarget = Join-Path $claudeSkills $skill
+    New-Item -ItemType Directory -Force -Path $aTarget | Out-Null
+    New-Item -ItemType Directory -Force -Path $cTarget | Out-Null
+    Copy-Item "$($skillDir.FullName)\*" "$aTarget\" -Recurse -Force
+    Copy-Item "$($skillDir.FullName)\*" "$cTarget\" -Recurse -Force
     $spCount++
   }
   Remove-Item $spTmp -Recurse -Force
-  $spInstalled = $true
   Ok "superpowers 스킬 배치 완료 ($spCount 개)"
 }
 
@@ -120,10 +134,12 @@ if ((Test-Path ".agents\skills\brainstorming\SKILL.md") -and -not $Force) {
 Say "커스텀 스킬 배치"
 $customSkills = @("review", "sprint", "deploy")
 foreach ($skill in $customSkills) {
-  New-Item -ItemType Directory -Force -Path ".agents\skills\$skill" | Out-Null
-  New-Item -ItemType Directory -Force -Path ".claude\skills\$skill" | Out-Null
-  $agentSkill = ".agents\skills\$skill\SKILL.md"
-  $claudeSkill = ".claude\skills\$skill\SKILL.md"
+  $aTarget = Join-Path $agentsSkills $skill
+  $cTarget = Join-Path $claudeSkills $skill
+  New-Item -ItemType Directory -Force -Path $aTarget | Out-Null
+  New-Item -ItemType Directory -Force -Path $cTarget | Out-Null
+  $agentSkill = Join-Path $aTarget "SKILL.md"
+  $claudeSkill = Join-Path $cTarget "SKILL.md"
   if ((Test-Path $agentSkill) -and -not $Force) {
     Warn "$agentSkill 이미 존재 — 스킵 (-Force 로 덮어쓰기)"
   } else {

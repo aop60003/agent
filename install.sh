@@ -5,13 +5,14 @@
 # 사용법:
 #   curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash
 #   curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --force
+#   curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --global
 #
 # 수행 작업:
 #   1. 사전 확인: python3, pip
 #   2. engram 메모리 시스템 설치 (pip)
 #   3. ~/.engram/memory.db 초기화
 #   4. 현재 폴더에 AGENTS.md / CLAUDE.md 생성
-#   5. 스킬 배치: superpowers (obra/superpowers) + 커스텀 (review, sprint, deploy)
+#   5. 스킬 배치: superpowers + 커스텀 (--global: 유저 레벨, 기본: 프로젝트 레벨)
 #   6. .claude/workspace 디렉토리 생성
 #   7. .gitignore 업데이트
 # ---------------------------------------------------------------------------
@@ -21,11 +22,13 @@ set -euo pipefail
 REPO_RAW="https://raw.githubusercontent.com/aop60003/agent/main"
 FORCE=0
 SKIP_ENGRAM=0
+GLOBAL=0
 
 for arg in "$@"; do
   case "$arg" in
     --force)        FORCE=1 ;;
     --skip-engram)  SKIP_ENGRAM=1 ;;
+    --global)       GLOBAL=1 ;;
     -h|--help)
       grep '^#' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
   esac
@@ -107,23 +110,32 @@ fi
 
 # ---------- 4. 스킬 배치 ----------
 
+# 설치 위치 결정
+if [ "$GLOBAL" -eq 1 ]; then
+  AGENTS_SKILLS="$HOME/.agents/skills"
+  CLAUDE_SKILLS="$HOME/.claude/skills"
+  say "스킬 설치 위치: 유저 레벨 (~/.agents/skills + ~/.claude/skills)"
+else
+  AGENTS_SKILLS=".agents/skills"
+  CLAUDE_SKILLS=".claude/skills"
+  say "스킬 설치 위치: 프로젝트 레벨 (.agents/skills + .claude/skills)"
+fi
+
 # 4a. superpowers 스킬 (github.com/obra/superpowers)
 say "superpowers 스킬 다운로드 (obra/superpowers)"
 SP_URL="https://github.com/obra/superpowers/archive/refs/heads/main.tar.gz"
 SP_TMP=$(mktemp -d)
-SP_INSTALLED=0
-if [ -f ".agents/skills/brainstorming/SKILL.md" ] && [ "$FORCE" -eq 0 ]; then
+if [ -f "$AGENTS_SKILLS/brainstorming/SKILL.md" ] && [ "$FORCE" -eq 0 ]; then
   warn "superpowers 스킬 이미 존재 — 스킵 (--force 로 덮어쓰기)"
 else
   download "$SP_URL" "$SP_TMP/superpowers.tar.gz"
   tar xzf "$SP_TMP/superpowers.tar.gz" -C "$SP_TMP"
   for skill_dir in "$SP_TMP"/superpowers-main/skills/*/; do
     skill=$(basename "$skill_dir")
-    mkdir -p ".agents/skills/$skill" ".claude/skills/$skill"
-    cp -r "$skill_dir"* ".agents/skills/$skill/"
-    cp -r "$skill_dir"* ".claude/skills/$skill/"
+    mkdir -p "$AGENTS_SKILLS/$skill" "$CLAUDE_SKILLS/$skill"
+    cp -r "$skill_dir"* "$AGENTS_SKILLS/$skill/"
+    cp -r "$skill_dir"* "$CLAUDE_SKILLS/$skill/"
   done
-  SP_INSTALLED=1
   ok "superpowers 스킬 배치 완료 ($(ls -d "$SP_TMP"/superpowers-main/skills/*/ | wc -l)개)"
 fi
 rm -rf "$SP_TMP"
@@ -132,12 +144,12 @@ rm -rf "$SP_TMP"
 say "커스텀 스킬 배치"
 CUSTOM_SKILLS="review sprint deploy"
 for skill in $CUSTOM_SKILLS; do
-  mkdir -p ".agents/skills/$skill" ".claude/skills/$skill"
-  if [ -f ".agents/skills/$skill/SKILL.md" ] && [ "$FORCE" -eq 0 ]; then
-    warn ".agents/skills/$skill — 이미 존재 — 스킵 (--force 로 덮어쓰기)"
+  mkdir -p "$AGENTS_SKILLS/$skill" "$CLAUDE_SKILLS/$skill"
+  if [ -f "$AGENTS_SKILLS/$skill/SKILL.md" ] && [ "$FORCE" -eq 0 ]; then
+    warn "$AGENTS_SKILLS/$skill — 이미 존재 — 스킵 (--force 로 덮어쓰기)"
   else
-    download "$REPO_RAW/skills/$skill/SKILL.md" ".agents/skills/$skill/SKILL.md"
-    cp ".agents/skills/$skill/SKILL.md" ".claude/skills/$skill/SKILL.md"
+    download "$REPO_RAW/skills/$skill/SKILL.md" "$AGENTS_SKILLS/$skill/SKILL.md"
+    cp "$AGENTS_SKILLS/$skill/SKILL.md" "$CLAUDE_SKILLS/$skill/SKILL.md"
     ok "$skill 스킬 배치 완료"
   fi
 done

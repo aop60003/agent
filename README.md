@@ -26,6 +26,7 @@ iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1 | iex
 |------|------|
 | `--force` / `-Force` | 기존 파일 덮어쓰기 |
 | `--skip-engram` / `-SkipEngram` | engram 설치 스킵 (AGENTS.md 만 배치) |
+| `--global` / `-Global` | 스킬을 유저 레벨에 설치 (`~/.claude/skills/` + `~/.agents/skills/`) |
 
 예시:
 ```bash
