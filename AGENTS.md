@@ -126,7 +126,7 @@ A task is not complete just because code was written. Show evidence.
 
 ### 12.1 Engram Memory
 
-If `command -v engram` succeeds, use Engram for cross-session memory: `engram save/find/who/remember`. Ignore if unavailable.
+If `command -v engram` succeeds, use Engram (package: `engram-ms`) for cross-session memory: `engram save/find/who/remember/status`. Use `engram-advanced` for `--db <path>` or `--json` output. Ignore if unavailable.
 
 ### 12.2 Skills
 

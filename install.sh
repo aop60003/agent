@@ -64,19 +64,26 @@ if [ "$SKIP_ENGRAM" -eq 0 ]; then
     ok "engram 이 이미 설치되어 있음 (--force 로 재설치)"
   else
     # PEP 668 환경(Debian/Ubuntu)에서도 동작하도록 --user 우선
-    if ! "$PIP" install --user --upgrade memorytrace 2>/dev/null; then
-      "$PIP" install --user --upgrade --break-system-packages memorytrace \
+    # engram-ms 가 정식 배포명, memorytrace 는 레거시 별칭 (동일 엔진)
+    if ! "$PIP" install --user --upgrade engram-ms 2>/dev/null; then
+      "$PIP" install --user --upgrade --break-system-packages engram-ms \
         || die "engram 설치 실패"
     fi
     ok "engram 설치 완료"
   fi
 
-  # DB 초기화
+  # DB 초기화 — 기본 경로 ~/.engram/memory.db
   say "~/.engram/memory.db 초기화"
   mkdir -p "$HOME/.engram"
-  "$PYTHON" -m engram.cli.app --db "$HOME/.engram/memory.db" init >/dev/null 2>&1 \
-    && ok "engram DB 초기화 완료" \
-    || warn "engram DB 초기화 스킵 (이미 존재하거나 CLI 미지원)"
+  if command -v engram >/dev/null 2>&1; then
+    engram init >/dev/null 2>&1 \
+      && ok "engram DB 초기화 완료" \
+      || warn "engram DB 초기화 스킵 (이미 존재)"
+  else
+    "$PYTHON" -m engram init >/dev/null 2>&1 \
+      && ok "engram DB 초기화 완료" \
+      || warn "engram DB 초기화 스킵 (이미 존재하거나 CLI 미지원)"
+  fi
 else
   warn "engram 설치 건너뜀 (--skip-engram)"
 fi
@@ -190,6 +197,8 @@ cat <<'NEXT'
        engram save "프로젝트 이름은 ..."
        engram find "검색어"
        engram who "이름"
+       engram status
+     (추가 기능) pip install "engram-ms[llm|semantic|mcp|full]"
 
 재실행:
   curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --force

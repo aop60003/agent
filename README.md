@@ -45,8 +45,8 @@ iex "& { $(iwr https://raw.githubusercontent.com/aop60003/agent/main/install.ps1
 ## 설치 시 수행 작업
 
 1. **사전 확인** — python 3.9+, pip
-2. **engram 설치** — `pip install --user memorytrace`
-3. **메모리 DB 초기화** — `~/.engram/memory.db`
+2. **engram 설치** — `pip install --user engram-ms` (레거시 별칭 `memorytrace` 도 동일 엔진)
+3. **메모리 DB 초기화** — `engram init` → `~/.engram/memory.db`
 4. **템플릿 배치**
    - `AGENTS.md` — 프로젝트 기본 에이전트 가이드
    - `CLAUDE.md` — AGENTS.md 참조 포인터
@@ -78,7 +78,20 @@ engram save "팀 규칙: 모든 API는 /api/v1 prefix"
 
 engram find "API 규칙"        # 검색
 engram who "팀원 이름"         # 인물 조회
+engram status                 # 상태 확인
 ```
+
+**선택 기능** — 필요한 경우에만 추가 설치:
+```bash
+pip install "engram-ms[llm]"       # LLM 연동
+pip install "engram-ms[semantic]"  # 시맨틱 검색
+pip install "engram-ms[mcp]"       # MCP 서버
+pip install "engram-ms[full]"      # 전체
+```
+
+**고급 CLI / SDK**
+- `engram-advanced --db <path> search "..." --max-results 5` / `--json health` — 커스텀 DB 경로나 JSON 출력이 필요할 때
+- `from engram.integrations.sdk import EngramSDK` — Python SDK
 
 ### 3. AI 에이전트에서 사용
 Claude Code, Codex, Cursor, Copilot 등이 프로젝트 루트에서 `AGENTS.md` 또는 `CLAUDE.md`를 자동 로드합니다.
@@ -128,7 +141,7 @@ rm -rf .claude .agents
 rm -rf ~/.claude/skills ~/.agents/skills
 
 # engram (선택)
-pip uninstall memorytrace
+pip uninstall engram-ms   # (레거시 설치라면: pip uninstall memorytrace)
 rm -rf ~/.engram
 ```
 
@@ -142,7 +155,7 @@ Remove-Item .claude, .agents -Recurse -ErrorAction SilentlyContinue
 Remove-Item "$HOME\.claude\skills", "$HOME\.agents\skills" -Recurse -ErrorAction SilentlyContinue
 
 # engram (선택)
-pip uninstall memorytrace
+pip uninstall engram-ms   # (레거시 설치라면: pip uninstall memorytrace)
 Remove-Item "$HOME\.engram" -Recurse -ErrorAction SilentlyContinue
 ```
 

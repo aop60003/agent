@@ -52,7 +52,8 @@ if (-not $SkipEngram) {
   if ($engramExists -and -not $Force) {
     Ok "engram 이 이미 설치되어 있음 (-Force 로 재설치)"
   } else {
-    & $python.Source -m pip install --user --upgrade memorytrace
+    # engram-ms 가 정식 배포명, memorytrace 는 레거시 별칭 (동일 엔진)
+    & $python.Source -m pip install --user --upgrade engram-ms
     if ($LASTEXITCODE -ne 0) { Die "engram 설치 실패" }
     Ok "engram 설치 완료"
   }
@@ -60,8 +61,12 @@ if (-not $SkipEngram) {
   Say "~/.engram/memory.db 초기화"
   $engramDir = Join-Path $HOME ".engram"
   New-Item -ItemType Directory -Force -Path $engramDir | Out-Null
-  $dbPath = Join-Path $engramDir "memory.db"
-  & $python.Source -m engram.cli.app --db $dbPath init 2>$null
+  $engramCmd = Get-Command engram -ErrorAction SilentlyContinue
+  if ($engramCmd) {
+    & $engramCmd.Source init 2>$null
+  } else {
+    & $python.Source -m engram init 2>$null
+  }
   if ($LASTEXITCODE -eq 0) { Ok "engram DB 초기화 완료" }
   else { Warn "engram DB 초기화 스킵 (이미 존재하거나 CLI 미지원)" }
 } else {
@@ -183,6 +188,8 @@ Ok "설치 완료"
        engram save "프로젝트 이름은 ..."
        engram find "검색어"
        engram who "이름"
+       engram status
+     (추가 기능) pip install "engram-ms[llm|semantic|mcp|full]"
 
 재실행:
   iex "& { `$(iwr $RepoRaw/install.ps1) } -Force"
