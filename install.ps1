@@ -36,10 +36,22 @@ function Die($msg)  { Write-Host "[X]  $msg" -ForegroundColor Red; exit 1 }
 
 # ---------- 1. 사전 확인 ----------
 Say "사전 확인"
-$python = Get-Command python -ErrorAction SilentlyContinue
-if (-not $python) { $python = Get-Command python3 -ErrorAction SilentlyContinue }
-if (-not $python) { Die "python (3.9+) 이 필요합니다" }
-$pyv = & $python.Source -c "import sys;v=sys.version_info;print(str(v[0])+'.'+str(v[1]))"
+# Windows MS Store 스텁(WindowsApps 경로) / PATH 꼬임 방어:
+# Get-Command 로 찾아도 실제 실행 시 버전을 못 뱉으면 건너뛴다.
+$python = $null
+$pyv = $null
+foreach ($candidate in @('python', 'python3')) {
+  $cmd = Get-Command $candidate -ErrorAction SilentlyContinue
+  if (-not $cmd) { continue }
+  if ($cmd.Source -like '*\WindowsApps\*') { continue }
+  $out = & $cmd.Source -c "import sys;print('%d.%d'%sys.version_info[:2])" 2>$null
+  if ($LASTEXITCODE -eq 0 -and $out -match '^\d+\.\d+$') {
+    $python = $cmd
+    $pyv = $out.Trim()
+    break
+  }
+}
+if (-not $python) { Die "python (3.9+) 이 필요합니다 (Windows MS Store 스텁은 사용 불가)" }
 $pyvParts = $pyv.Split('.')
 if ([int]$pyvParts[0] -lt 3 -or ([int]$pyvParts[0] -eq 3 -and [int]$pyvParts[1] -lt 9)) {
   Die "python 3.9+ 가 필요합니다 (현재: $pyv)"

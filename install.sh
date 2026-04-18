@@ -47,19 +47,23 @@ die()  { printf "${c_err}✗ %s${c_reset}\n" "$*" >&2; exit 1; }
 
 # ---------- 1. 사전 확인 ----------
 say "사전 확인"
+# Windows MS Store 스텁 / PATH 꼬임 방어: command -v 가 성공해도 실제 실행 시
+# 버전을 제대로 못 뱉는 후보는 제외한다 (python3 가 WindowsApps 스텁인 케이스)
 PYTHON=""
-if command -v python3 >/dev/null 2>&1; then
-  PYTHON=python3
-elif command -v python >/dev/null 2>&1; then
-  PYTHON=python
-else
-  die "python3 (또는 python) 가 필요합니다 (3.9+)"
-fi
-command -v pip >/dev/null 2>&1 || command -v pip3 >/dev/null 2>&1 || die "pip 가 필요합니다"
-PIP=$(command -v pip3 || command -v pip)
-PYV=$("$PYTHON" -c 'import sys;print("%d.%d"%sys.version_info[:2])')
-PYV_NUM=$("$PYTHON" -c 'import sys;v=sys.version_info;print(v[0]*100+v[1])')
+PYV=""
+PYV_NUM=""
+for _candidate in python3 python; do
+  command -v "$_candidate" >/dev/null 2>&1 || continue
+  _num=$("$_candidate" -c 'import sys;v=sys.version_info;print(v[0]*100+v[1])' 2>/dev/null || true)
+  [ -z "$_num" ] && continue
+  PYTHON="$_candidate"
+  PYV=$("$_candidate" -c 'import sys;print("%d.%d"%sys.version_info[:2])' 2>/dev/null)
+  PYV_NUM="$_num"
+  break
+done
+[ -z "$PYTHON" ] && die "python3 (또는 python) 이 필요합니다 (3.9+, Windows MS Store 스텁 제외)"
 [ "$PYV_NUM" -lt 309 ] && die "python 3.9+ 가 필요합니다 (현재: $PYV)"
+"$PYTHON" -m pip --version >/dev/null 2>&1 || die "pip 이 필요합니다 ($PYTHON -m pip 실행 불가)"
 ok "$PYTHON $PYV / pip 사용 가능"
 
 # ---------- 2. engram 설치 ----------
@@ -70,8 +74,8 @@ if [ "$SKIP_ENGRAM" -eq 0 ]; then
   else
     # PEP 668 환경(Debian/Ubuntu)에서도 동작하도록 --user 우선
     # engram-ms 가 정식 배포명, memorytrace 는 레거시 별칭 (동일 엔진)
-    if ! "$PIP" install --user --upgrade engram-ms 2>/dev/null; then
-      "$PIP" install --user --upgrade --break-system-packages engram-ms \
+    if ! "$PYTHON" -m pip install --user --upgrade engram-ms 2>/dev/null; then
+      "$PYTHON" -m pip install --user --upgrade --break-system-packages engram-ms \
         || die "engram 설치 실패"
     fi
     ok "engram 설치 완료"
