@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Removed
+- GitHub Actions workflow (`.github/workflows/ci.yml`). The repository is a
+  small solo-maintained template; CI coverage was shallow (no Windows or macOS
+  smoke test, no Python matrix) and blocked runs from account-level billing
+  issues created noise rather than signal. Local validation via
+  `shellcheck install.sh uninstall.sh` and
+  `Invoke-ScriptAnalyzer install.ps1,uninstall.ps1` before release is
+  sufficient at this scale.
+
 ## [0.1.0] — 2026-04-18
 
 First versioned release. Substantial reliability and UX pass over the installer
