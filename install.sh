@@ -20,6 +20,11 @@
 set -euo pipefail
 
 REPO_RAW="https://raw.githubusercontent.com/aop60003/agent/main"
+# obra/superpowers 고정 참조. 재현성을 위해 기본값은 특정 릴리즈 태그로 고정.
+# 최신 main 을 원하면:     SUPERPOWERS_REF=main bash install.sh
+# 다른 태그 / SHA 로 고정: SUPERPOWERS_REF=v5.0.6 bash install.sh
+#                          SUPERPOWERS_REF=abc1234 bash install.sh
+SUPERPOWERS_REF="${SUPERPOWERS_REF:-v5.0.7}"
 FORCE=0
 SKIP_ENGRAM=0
 GLOBAL=0
@@ -114,12 +119,12 @@ place_file() {
 
 place_file "AGENTS.md" "$REPO_RAW/AGENTS.md"
 
-# CLAUDE.md 는 AGENTS.md 를 참조하는 포인터 (Claude Code 호환)
-if [ -f "CLAUDE.md" ] && [ ! -L "CLAUDE.md" ] && [ "$FORCE" -eq 0 ]; then
+# CLAUDE.md 는 AGENTS.md 를 실제로 import (Claude Code 의 @<file> 구문)
+if [ -f "CLAUDE.md" ] && [ "$FORCE" -eq 0 ]; then
   warn "CLAUDE.md 이미 존재 — 스킵 (--force 로 덮어쓰기)"
 else
-  echo 'See AGENTS.md for all project conventions and rules.' > CLAUDE.md
-  ok "CLAUDE.md 생성 (AGENTS.md 참조)"
+  echo '@AGENTS.md' > CLAUDE.md
+  ok "CLAUDE.md 생성 (@AGENTS.md import)"
 fi
 
 # ---------- 4. 스킬 배치 ----------
@@ -136,23 +141,31 @@ else
 fi
 
 # 4a. superpowers 스킬 (github.com/obra/superpowers)
-say "superpowers 스킬 다운로드 (obra/superpowers)"
-SP_URL="https://github.com/obra/superpowers/archive/refs/heads/main.tar.gz"
-SP_TMP=$(mktemp -d)
+say "superpowers 스킬 다운로드 (obra/superpowers @ $SUPERPOWERS_REF)"
+SP_URL="https://github.com/obra/superpowers/archive/${SUPERPOWERS_REF}.tar.gz"
 if [ -f "$AGENTS_SKILLS/brainstorming/SKILL.md" ] && [ "$FORCE" -eq 0 ]; then
   warn "superpowers 스킬 이미 존재 — 스킵 (--force 로 덮어쓰기)"
 else
+  SP_TMP=$(mktemp -d)
+  # 오류 경로에서도 temp 디렉토리 보장 정리
+  trap 'rm -rf "$SP_TMP"' EXIT
   download "$SP_URL" "$SP_TMP/superpowers.tar.gz"
   tar xzf "$SP_TMP/superpowers.tar.gz" -C "$SP_TMP"
-  for skill_dir in "$SP_TMP"/superpowers-main/skills/*/; do
+  # 압축 해제 결과 디렉토리(main -> superpowers-main, v1.2.3 -> superpowers-1.2.3, SHA -> superpowers-<sha>)
+  SP_SRC=$(find "$SP_TMP" -maxdepth 1 -mindepth 1 -type d -name "superpowers-*" | head -n 1)
+  [ -z "$SP_SRC" ] && die "superpowers 압축 해제 디렉토리를 찾지 못했습니다"
+  SP_COUNT=0
+  for skill_dir in "$SP_SRC"/skills/*/; do
     skill=$(basename "$skill_dir")
     mkdir -p "$AGENTS_SKILLS/$skill" "$CLAUDE_SKILLS/$skill"
     cp -r "$skill_dir"* "$AGENTS_SKILLS/$skill/"
     cp -r "$skill_dir"* "$CLAUDE_SKILLS/$skill/"
+    SP_COUNT=$((SP_COUNT + 1))
   done
-  ok "superpowers 스킬 배치 완료 ($(ls -d "$SP_TMP"/superpowers-main/skills/*/ | wc -l)개)"
+  ok "superpowers 스킬 배치 완료 (${SP_COUNT}개)"
+  rm -rf "$SP_TMP"
+  trap - EXIT
 fi
-rm -rf "$SP_TMP"
 
 # 4b. 커스텀 스킬 (review, sprint, deploy)
 say "커스텀 스킬 배치"
@@ -192,14 +205,21 @@ cat <<'NEXT'
 
 다음 단계:
   1. AGENTS.md 를 열어 <!-- TODO --> 블록을 프로젝트 내용으로 채우세요
-  2. Claude Code / Codex / Cursor 에서 이 디렉토리를 열면 자동 로드됩니다
-  3. engram 사용:
-       engram save "프로젝트 이름은 ..."
-       engram find "검색어"
-       engram who "이름"
-       engram status
+  2. 에이전트 호환:
+       - Claude Code : CLAUDE.md 가 @AGENTS.md 를 import 합니다 (자동)
+       - Codex       : AGENTS.md 를 자동 로드 (자동)
+       - Cursor      : .cursorrules 또는 .cursor/rules/ 가 필요 — 별도 설정
+       - Copilot     : .github/copilot-instructions.md 가 필요 — 별도 설정
+  3. engram 사용 (--user 설치 후 PATH 미적용이면 아래 명령도 동일하게 동작):
+       engram save "프로젝트 이름은 ..."     #  또는  python -m engram save "..."
+       engram find "검색어"                 #  또는  python -m engram find "..."
+       engram status                       #  또는  python -m engram status
      (추가 기능) pip install "engram-ms[llm|semantic|mcp|full]"
 
 재실행:
   curl -fsSL https://raw.githubusercontent.com/aop60003/agent/main/install.sh | bash -s -- --force
+
+언인스톨:
+  bash uninstall.sh            # 대화형
+  bash uninstall.sh --yes      # 자동 승인
 NEXT

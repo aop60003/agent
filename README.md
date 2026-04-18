@@ -94,7 +94,13 @@ pip install "engram-ms[full]"      # 전체
 - `from engram.integrations.sdk import EngramSDK` — Python SDK
 
 ### 3. AI 에이전트에서 사용
-Claude Code, Codex, Cursor, Copilot 등이 프로젝트 루트에서 `AGENTS.md` 또는 `CLAUDE.md`를 자동 로드합니다.
+
+| 에이전트 | 자동 로드 여부 | 비고 |
+|---|---|---|
+| **Claude Code** | ✅ | `CLAUDE.md` 가 `@AGENTS.md` 로 import — 인스톨러가 자동 생성 |
+| **Codex** | ✅ | `AGENTS.md` 네이티브 지원 |
+| **Cursor** | ❌ | `.cursorrules` 또는 `.cursor/rules/` 자체 형식 사용 — 별도 설정 필요 |
+| **GitHub Copilot** | ❌ | `.github/copilot-instructions.md` 사용 — 별도 설정 필요 |
 
 ---
 
@@ -117,11 +123,15 @@ Commands / Testing / Project Structure / Code Style / Git Workflow / Safety Boun
 
 ```
 agent/
-├── AGENTS.md            # 통합 프로젝트 기본 템플릿 (~170줄)
+├── AGENTS.md            # 통합 프로젝트 기본 템플릿 (~170줄, 영어)
 ├── install.sh           # Mac/Linux/WSL 인스톨러
 ├── install.ps1          # Windows PowerShell 인스톨러
+├── uninstall.sh         # Mac/Linux/WSL 언인스톨러
+├── uninstall.ps1        # Windows 언인스톨러
+├── LICENSE              # MIT
 ├── README.md            # 이 파일
-└── skills/              # 커스텀 스킬 템플릿 (superpowers는 설치 시 다운로드)
+└── skills/              # 커스텀 스킬 템플릿 (superpowers 는 설치 시 다운로드)
+    ├── AGENTS.md        # 이 디렉토리에서 스킬을 작성·수정하는 개발자용 가이드
     ├── review/SKILL.md  # 5단계 코드 리뷰
     ├── sprint/SKILL.md  # 전체 개발 사이클
     └── deploy/SKILL.md  # 배포 워크플로우
@@ -131,33 +141,50 @@ agent/
 
 ## 제거
 
+설치 후 저장소에 포함된 **언인스톨러**를 사용하세요.
+
 ### Mac / Linux / WSL
 ```bash
-# 프로젝트 레벨
-rm -f AGENTS.md CLAUDE.md
-rm -rf .claude .agents
-
-# 유저 레벨 (--global 로 설치한 경우)
-rm -rf ~/.claude/skills ~/.agents/skills
-
-# engram (선택)
-pip uninstall engram-ms   # (레거시 설치라면: pip uninstall memorytrace)
-rm -rf ~/.engram
+bash uninstall.sh               # 대화형 (각 단계 y/N 확인)
+bash uninstall.sh --global      # 유저 레벨 스킬도 제거
+bash uninstall.sh --yes         # 모든 확인 자동 승인
+bash uninstall.sh --keep-engram # engram 은 보존
 ```
 
 ### Windows (PowerShell)
 ```powershell
-# 프로젝트 레벨
-Remove-Item AGENTS.md, CLAUDE.md -ErrorAction SilentlyContinue
-Remove-Item .claude, .agents -Recurse -ErrorAction SilentlyContinue
-
-# 유저 레벨 (-Global 로 설치한 경우)
-Remove-Item "$HOME\.claude\skills", "$HOME\.agents\skills" -Recurse -ErrorAction SilentlyContinue
-
-# engram (선택)
-pip uninstall engram-ms   # (레거시 설치라면: pip uninstall memorytrace)
-Remove-Item "$HOME\.engram" -Recurse -ErrorAction SilentlyContinue
+.\uninstall.ps1                 # 대화형
+.\uninstall.ps1 -Global         # 유저 레벨 스킬도 제거
+.\uninstall.ps1 -Yes            # 모든 확인 자동 승인
+.\uninstall.ps1 -KeepEngram     # engram 은 보존
 ```
+
+---
+
+## 재현성 / Superpowers 고정
+
+기본값은 `obra/superpowers@main` 최신 상태를 다운로드합니다. 재현성을 위해 특정 태그나 커밋 SHA 로 고정할 수 있습니다:
+
+```bash
+SUPERPOWERS_REF=v1.2.3 bash install.sh
+SUPERPOWERS_REF=abc1234 bash install.sh
+```
+```powershell
+$env:SUPERPOWERS_REF = "v1.2.3" ; iex "& { $(iwr $RepoRaw/install.ps1) }"
+```
+
+---
+
+## 트러블슈팅
+
+| 증상 | 원인 / 해결 |
+|---|---|
+| `engram: command not found` / 명령을 찾을 수 없음 | `pip install --user` 는 PATH 를 자동 설정하지 않습니다. `python -m engram save "..."` 로 대체하거나, 사용자 site-packages 의 `Scripts` (Win) / `bin` (Unix) 을 PATH 에 추가하세요 |
+| `error: externally-managed-environment` (Ubuntu 23.04+, Debian 12+) | PEP 668. install.sh 는 `--break-system-packages` 폴백을 포함. 수동 설치 시 `pipx install engram-ms` 또는 venv 권장 |
+| Windows 에서 `python` 실행 시 Microsoft Store 창 오픈 | Windows 의 `python.exe` 리디렉션 스텁. 설정 → 앱 → 앱 실행 별칭 에서 비활성화 후 실제 Python 설치 |
+| `The term 'iwr' is not recognized` / 실행 정책 오류 | `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned` 후 재실행 |
+| 기업 네트워크에서 GitHub 접근 차단 | `raw.githubusercontent.com` 과 `github.com` 의 HTTPS 접근 허용 필요 |
+| 스킬이 업데이트되지 않음 | `--force` / `-Force` 플래그로 재실행 |
 
 ---
 

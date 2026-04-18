@@ -24,6 +24,10 @@ param(
 
 $ErrorActionPreference = "Stop"
 $RepoRaw = "https://raw.githubusercontent.com/aop60003/agent/main"
+# obra/superpowers 고정 참조. 재현성을 위해 기본값은 특정 릴리즈 태그로 고정.
+# 최신 main 을 원하면:     $env:SUPERPOWERS_REF = "main"
+# 다른 태그 / SHA 로 고정: $env:SUPERPOWERS_REF = "v5.0.6"  또는  "abc1234"
+$SuperpowersRef = if ($env:SUPERPOWERS_REF) { $env:SUPERPOWERS_REF } else { "v5.0.7" }
 
 function Say($msg)  { Write-Host "==> $msg"  -ForegroundColor Cyan }
 function Ok($msg)   { Write-Host "[OK] $msg" -ForegroundColor Green }
@@ -87,12 +91,12 @@ function Place-File($target, $url) {
 
 Place-File "AGENTS.md" "$RepoRaw/AGENTS.md"
 
-# CLAUDE.md 는 AGENTS.md 를 참조하는 포인터 (Claude Code 호환)
+# CLAUDE.md 는 AGENTS.md 를 실제로 import (Claude Code 의 @<file> 구문)
 if ((Test-Path "CLAUDE.md") -and -not $Force) {
   Warn "CLAUDE.md 이미 존재 — 스킵"
 } else {
-  "See AGENTS.md for all project conventions and rules." | Set-Content -Path "CLAUDE.md" -Encoding UTF8
-  Ok "CLAUDE.md 생성 (AGENTS.md 참조)"
+  "@AGENTS.md" | Set-Content -Path "CLAUDE.md" -Encoding UTF8
+  Ok "CLAUDE.md 생성 (@AGENTS.md import)"
 }
 
 # ---------- 4. 스킬 배치 ----------
@@ -109,30 +113,39 @@ if ($Global) {
 }
 
 # 4a. superpowers 스킬 (github.com/obra/superpowers)
-Say "superpowers 스킬 다운로드 (obra/superpowers)"
+Say "superpowers 스킬 다운로드 (obra/superpowers @ $SuperpowersRef)"
 $spCheck = Join-Path $agentsSkills "brainstorming\SKILL.md"
 if ((Test-Path $spCheck) -and -not $Force) {
   Warn "superpowers 스킬 이미 존재 — 스킵 (-Force 로 덮어쓰기)"
 } else {
   $spTmp = Join-Path $env:TEMP "superpowers-$(Get-Random)"
   New-Item -ItemType Directory -Force -Path $spTmp | Out-Null
-  $spZip = Join-Path $spTmp "superpowers.zip"
-  Invoke-WebRequest -UseBasicParsing -Uri "https://github.com/obra/superpowers/archive/refs/heads/main.zip" -OutFile $spZip
-  Expand-Archive -Path $spZip -DestinationPath $spTmp -Force
-  $spSkillsDir = Join-Path $spTmp "superpowers-main\skills"
-  $spCount = 0
-  foreach ($skillDir in Get-ChildItem $spSkillsDir -Directory) {
-    $skill = $skillDir.Name
-    $aTarget = Join-Path $agentsSkills $skill
-    $cTarget = Join-Path $claudeSkills $skill
-    New-Item -ItemType Directory -Force -Path $aTarget | Out-Null
-    New-Item -ItemType Directory -Force -Path $cTarget | Out-Null
-    Copy-Item "$($skillDir.FullName)\*" "$aTarget\" -Recurse -Force
-    Copy-Item "$($skillDir.FullName)\*" "$cTarget\" -Recurse -Force
-    $spCount++
+  try {
+    $spZip = Join-Path $spTmp "superpowers.zip"
+    # main, 태그, SHA 모두 동일 경로 포맷: /archive/<ref>.zip
+    $spUrl = "https://github.com/obra/superpowers/archive/$SuperpowersRef.zip"
+    Invoke-WebRequest -UseBasicParsing -Uri $spUrl -OutFile $spZip
+    Expand-Archive -Path $spZip -DestinationPath $spTmp -Force
+    # 압축 해제 디렉토리(main -> superpowers-main, v1.2.3 -> superpowers-1.2.3, SHA -> superpowers-<sha>)
+    $spRoot = Get-ChildItem -Path $spTmp -Directory -Filter "superpowers-*" | Select-Object -First 1
+    if (-not $spRoot) { Die "superpowers 압축 해제 디렉토리를 찾지 못했습니다" }
+    $spSkillsDir = Join-Path $spRoot.FullName "skills"
+    $spCount = 0
+    foreach ($skillDir in Get-ChildItem $spSkillsDir -Directory) {
+      $skill = $skillDir.Name
+      $aTarget = Join-Path $agentsSkills $skill
+      $cTarget = Join-Path $claudeSkills $skill
+      New-Item -ItemType Directory -Force -Path $aTarget | Out-Null
+      New-Item -ItemType Directory -Force -Path $cTarget | Out-Null
+      Copy-Item "$($skillDir.FullName)\*" "$aTarget\" -Recurse -Force
+      Copy-Item "$($skillDir.FullName)\*" "$cTarget\" -Recurse -Force
+      $spCount++
+    }
+    Ok "superpowers 스킬 배치 완료 ($spCount 개)"
+  } finally {
+    # 실패 경로에서도 temp 디렉토리 보장 정리
+    Remove-Item $spTmp -Recurse -Force -ErrorAction SilentlyContinue
   }
-  Remove-Item $spTmp -Recurse -Force
-  Ok "superpowers 스킬 배치 완료 ($spCount 개)"
 }
 
 # 4b. 커스텀 스킬 (review, sprint, deploy)
@@ -183,14 +196,21 @@ Ok "설치 완료"
 
 다음 단계:
   1. AGENTS.md 를 열어 <!-- TODO --> 블록을 프로젝트 내용으로 채우세요
-  2. Claude Code / Codex / Cursor 에서 이 디렉토리를 열면 자동 로드됩니다
-  3. engram 사용:
-       engram save "프로젝트 이름은 ..."
-       engram find "검색어"
-       engram who "이름"
-       engram status
+  2. 에이전트 호환:
+       - Claude Code : CLAUDE.md 가 @AGENTS.md 를 import (자동)
+       - Codex       : AGENTS.md 를 자동 로드 (자동)
+       - Cursor      : .cursorrules 또는 .cursor/rules/ 가 필요 — 별도 설정
+       - Copilot     : .github/copilot-instructions.md 가 필요 — 별도 설정
+  3. engram 사용 (PATH 미적용이면 python -m engram 로도 동일하게 동작):
+       engram save "프로젝트 이름은 ..."     #  또는  python -m engram save "..."
+       engram find "검색어"                 #  또는  python -m engram find "..."
+       engram status                       #  또는  python -m engram status
      (추가 기능) pip install "engram-ms[llm|semantic|mcp|full]"
 
 재실행:
   iex "& { `$(iwr $RepoRaw/install.ps1) } -Force"
+
+언인스톨:
+  .\uninstall.ps1         # 대화형
+  .\uninstall.ps1 -Yes    # 자동 승인
 "@ | Write-Host

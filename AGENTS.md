@@ -1,5 +1,7 @@
 # AGENTS.md
 
+<!-- agent-template v0.1.0 · https://github.com/aop60003/agent -->
+
 This file defines how AI coding agents (Claude Code, Codex, Cursor, Copilot, etc.) should operate in this repository.
 It is a **project-wide default guide**. Replace `<!-- TODO -->` blocks with repo-specific details.
 
