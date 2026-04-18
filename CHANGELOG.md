@@ -7,6 +7,41 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- `AGENTS.md §9.5 On Failure` — explicit protocol when verification fails
+  (do not mark done, report what failed, request direction).
+- `AGENTS.md §13 Operational Notes` — new section with four subsections:
+  `13.1 Secrets`, `13.2 Dependencies` (gate detail for §7 ASK FIRST),
+  `13.3 Communication`, `13.4 Onboarding`.
+- `CLAUDE.md` now extends `@AGENTS.md` with repository-specific §1–4 overrides
+  so this repo has actionable project context without polluting the downstream
+  template.
+
+### Changed
+- `AGENTS.md` version stamp `v0.1.0` → `v0.2.0`.
+- Softened rules that conflicted with real workflows:
+  - §7 NEVER `--force` — now distinguishes from `--force-with-lease`;
+    also names `--no-gpg-sign` alongside `--no-verify`.
+  - §7 NEVER test deletion — legitimate removal allowed when a feature is
+    genuinely gone, as long as the intent is flagged (not silent).
+  - §8.1 arbitrary "under 20 lines" rewrite threshold removed — a full
+    rewrite is gated on stated justification, not line count.
+  - §8.2 timeout rule — explicit carve-out for intentionally unbounded
+    patterns (streaming, long-poll).
+  - §8.3 "10+ messages" → agent-agnostic "significant time or many edits".
+  - §8.3 "dispatch parallel subagents" (Claude-specific) → "parallel tool
+    calls or subagents (if the agent supports them)".
+- `AGENTS.md §11 Git & Contribution Conventions` now ships with sane
+  defaults (Conventional Commits, `feat/*`/`fix/*` branches, 1 review + CI)
+  instead of a pure TODO block.
+- `AGENTS.md §12.1 Engram Memory` — added when-to-save / when-to-find /
+  skip guidance and a Windows `Get-Command` detection note.
+- `AGENTS.md §14 Additional Context` (was §13) — `@reference` import now
+  explicitly labeled as Claude-Code-specific; other agents use standard
+  markdown links.
+- `AGENTS.md §15 Agent Behavior Summary` (was §14) — 5 principles now
+  framed as "apply always", not only "when stuck".
+
 ### Removed
 - GitHub Actions workflow (`.github/workflows/ci.yml`). The repository is a
   small solo-maintained template; CI coverage was shallow (no Windows or macOS

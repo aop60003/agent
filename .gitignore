@@ -16,6 +16,12 @@ Thumbs.db
 skills/.claude/
 skills/.agents/
 
+# Local install-test artifacts at repo root (install.sh / install.ps1 output
+# when the template itself is used as a test target)
+/.agents/
+/.claude/skills/
+
 # Temp / logs
 *.tmp
 *.log
+.claude/workspace/

@@ -1,6 +1,6 @@
 # AGENTS.md
 
-<!-- agent-template v0.1.0 · https://github.com/aop60003/agent -->
+<!-- agent-template v0.2.0 · https://github.com/aop60003/agent -->
 
 This file defines how AI coding agents (Claude Code, Codex, Cursor, Copilot, etc.) should operate in this repository.
 It is a **project-wide default guide**. Replace `<!-- TODO -->` blocks with repo-specific details.
@@ -67,10 +67,10 @@ It is a **project-wide default guide**. Replace `<!-- TODO -->` blocks with repo
 
 ### NEVER (forbidden)
 - Commit .env, credentials, secrets
-- Use `--force`, `--no-verify` flags
-- Run `rm -rf`, `git reset --hard` or destructive commands
+- Use `--force` (without `--force-with-lease`), `--no-verify`, or `--no-gpg-sign` without explicit approval
+- Run `rm -rf`, `git reset --hard`, or other destructive commands
 - Modify production DB directly
-- Delete/skip existing tests
+- Delete or skip tests without approval (legitimate removal when a feature is genuinely gone — flag the intent, don't silently remove)
 
 ---
 
@@ -81,23 +81,23 @@ It is a **project-wide default guide**. Replace `<!-- TODO -->` blocks with repo
 - NEVER leave TODO, FIXME, stub, or placeholder code
 - NEVER use generic catch-all error handling (`catch { return null }`)
 - NEVER fabricate API versions, config values, or package names
-- NEVER rewrite entire files — use surgical edits unless under 20 lines
+- NEVER rewrite entire files without cause — prefer surgical edits; if a full rewrite is genuinely simpler, state why
 - NEVER repeat a failed approach — investigate root cause first
 - NEVER self-evaluate as "done" — run tests and show output
 
 ### 8.2 Robustness
 - ALWAYS handle failure cases — assume external services WILL fail
-- ALWAYS add timeout for network/API calls
+- ALWAYS set timeouts on network/API calls unless the pattern is intentionally unbounded (e.g. streaming, long-poll)
 - ALWAYS clean up resources in finally blocks
 - ALWAYS validate inputs at system boundaries
 - NEVER suppress errors silently — log with context
 - NEVER hardcode config values — use env vars or config files
 
 ### 8.3 Edit Safety
-- Re-read files before editing if 10+ messages have passed
+- Re-read files before editing if significant time or many edits have passed
 - When renaming: grep all references, then bulk-rename
 - Before deleting files: verify no import/require references
-- For 5+ independent files: dispatch parallel subagents
+- For 5+ independent files: batch via parallel tool calls or subagents (if the agent supports them)
 
 ---
 
@@ -109,6 +109,7 @@ A task is not complete just because code was written. Show evidence.
 ### 9.2 Implementation — Build / lint / typecheck pass? Tests pass? No leftover TODO/FIXME?
 ### 9.3 Integration — No regressions? Adjacent workflows still work?
 ### 9.4 Evidence — Show test/build/lint output. If verification cannot be run, explain why explicitly.
+### 9.5 On Failure — If verification fails, do NOT mark the task done. Report what failed, what was tried, and whether a root cause is known, then request direction.
 
 ---
 
@@ -120,7 +121,11 @@ A task is not complete just because code was written. Show evidence.
 
 ## 11. Git & Contribution Conventions
 
-<!-- TODO: e.g. "Branch: feat/*, fix/* | Commit: Conventional Commits | PR: 1 review + CI pass" -->
+Defaults (override any that do not match your team):
+- Branches: `feat/*`, `fix/*`, `chore/*`, `docs/*`
+- Commits: Conventional Commits (`feat:`, `fix:`, `docs:`, `refactor:`, `test:`, `chore:`)
+- PRs: at least 1 review, CI pass, linear history preferred
+<!-- TODO: Adjust any default above or add team-specific rules -->
 
 ---
 
@@ -128,7 +133,11 @@ A task is not complete just because code was written. Show evidence.
 
 ### 12.1 Engram Memory
 
-If `command -v engram` succeeds, use Engram (package: `engram-ms`) for cross-session memory: `engram save/find/who/remember/status`. Use `engram-advanced` for `--db <path>` or `--json` output. Ignore if unavailable.
+If `engram` is available (Unix: `command -v engram`; Windows: `Get-Command engram`), use it for cross-session memory: `engram save/find/who/remember/status`. Use `engram-advanced` for `--db <path>` or `--json` output. Ignore if unavailable.
+
+- **Save** — decisions, deadlines, unusual conventions, names/roles — facts that outlive a session
+- **Find** — before answering about prior decisions or project state
+- **Skip** — transient task state (use tasks/plans instead)
 
 ### 12.2 Skills
 
@@ -148,16 +157,37 @@ For large features, use checkpoints. If context exceeds 70%, save state to `.cla
 
 ---
 
-## 13. Additional Context
+## 13. Operational Notes
 
-Large docs should be split via `@reference` — loaded on demand to save tokens.
-<!-- TODO: e.g. "@docs/api-conventions.md", "@docs/database-guide.md" -->
+### 13.1 Secrets
+- NEVER log, commit, or echo secret values. Reference via env vars or a secret manager only.
+- Storage location <!-- TODO: e.g. `.env` (git-ignored), 1Password vault "X", AWS Secrets Manager -->
+- If a secret is accidentally committed: rotate immediately, then scrub history (`git filter-repo`).
+
+### 13.2 Dependencies (gate detail for §7 ASK FIRST)
+Before proposing a new dependency, verify: (a) license is compatible, (b) last release within ~12 months OR widely used, (c) no lighter alternative in the current stack. State these in the request.
+
+### 13.3 Communication
+- Match the user's working language (e.g. Korean ↔ English).
+- Short, concrete answers; skip preamble. State uncertainty when present.
+
+### 13.4 Onboarding (first actions in this repo)
+1. Read `AGENTS.md` (this file), then `README.md`.
+2. Scan <!-- TODO: e.g. `src/services/*`, key entry points -->.
+3. Run <!-- TODO: test command --> to confirm the environment is wired up.
 
 ---
 
-## 14. Agent Behavior Summary
+## 14. Additional Context
 
-When stuck, return to these 5 principles:
+Large docs should be split and referenced. Claude Code: `@path/to/file.md` (on-demand load). Other agents: standard markdown links — readers open as needed.
+<!-- TODO: e.g. `@docs/api-conventions.md`, `@docs/database-guide.md` -->
+
+---
+
+## 15. Agent Behavior Summary
+
+These 5 principles apply always — return to them especially when stuck:
 
 1. **Read first** — read before editing
 2. **Change as little as necessary** — only change what's needed
