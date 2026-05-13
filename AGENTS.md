@@ -133,11 +133,31 @@ Defaults (override any that do not match your team):
 
 ### 12.1 Engram Memory
 
-If `engram` is available (Unix: `command -v engram`; Windows: `Get-Command engram`), use it for cross-session memory: `engram save/find/who/remember/status`. Use `engram-advanced` for `--db <path>` or `--json` output. Ignore if unavailable.
+If `engram` is available (Unix: `command -v engram`; Windows: `Get-Command engram`), use it as a quiet cross-session memory layer. Use `engram-advanced` for `--db <path>`, `--json`, context transfer, and operations review. Ignore Engram if unavailable; never make the task fail just because memory is missing.
 
-- **Save** — decisions, deadlines, unusual conventions, names/roles — facts that outlive a session
-- **Find** — before answering about prior decisions or project state
-- **Skip** — transient task state (use tasks/plans instead)
+- **Recall first** when the user asks about prior decisions, conventions, people, project state, deployment history, or "what did we decide last time?"
+  - Simple recall: `engram find "<query>"`
+  - Entity recall: `engram who "<name>"`
+  - Goal-aware recall: `engram-advanced context-search "<query>" --goal task_handoff`
+- **Save durable facts** after decisions, completed investigations, release/deploy outcomes, unusual repo conventions, user preferences, important names/roles, and root causes that should survive this session.
+  - Free text: `engram save "<durable fact or decision>"`
+  - Entity fact: `engram remember "<entity>" "<fact>"`
+- **Transfer work intentionally** when handing work to another agent or resuming a substantial session:
+  - `engram-advanced context-transfer <source-session-id> <target-agent-id>`
+- **Review memory health occasionally** during long-running work or before major handoff/release:
+  - `engram status`
+  - `engram-advanced operations-review`
+
+Do not store noisy or temporary data:
+
+- current task checklist items that already live in the active plan
+- raw command output, logs, stack traces, or secrets
+- speculation that has not been verified
+- obvious facts already encoded in source code or docs
+
+When saving, write short, factual sentences. Prefer `Decision: ...`, `Convention: ...`, `Root cause: ...`, `User preference: ...`, or `Release note: ...` prefixes so future agents can search and understand the memory quickly.
+
+If `engram-ctx` hooks or MCP tools are installed, prefer their normal automatic indexing for large tool outputs. Use manual `engram save` only for the distilled conclusion, not the full output.
 
 ### 12.2 Skills
 
