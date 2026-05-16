@@ -18,6 +18,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   template.
 
 ### Changed
+- `AGENTS.md` Engram guidance now frames memory as a quiet habit loop and
+  adds a searchable atomic save format with exact prefixes.
 - `AGENTS.md` version stamp `v0.1.0` → `v0.2.0`.
 - Softened rules that conflicted with real workflows:
   - §7 NEVER `--force` — now distinguishes from `--force-with-lease`;

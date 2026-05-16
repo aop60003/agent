@@ -133,18 +133,19 @@ Defaults (override any that do not match your team):
 
 ### 12.1 Engram Memory
 
-If `engram` is available (Unix: `command -v engram`; Windows: `Get-Command engram`), use it as a quiet cross-session memory layer. Use `engram-advanced` for `--db <path>`, `--json`, context transfer, and operations review. Ignore Engram if unavailable; never make the task fail just because memory is missing.
+If `engram` is available (Unix: `command -v engram`; Windows: `Get-Command engram`), use it as a quiet cross-session memory loop. Check availability once per session or substantial task, remember that result, and skip quietly if unavailable; never make the task fail just because memory is missing. Use `engram-advanced` for `--db <path>`, `--json`, context transfer, and operations review when available.
 
-- **Recall first** when the user asks about prior decisions, conventions, people, project state, deployment history, or "what did we decide last time?"
+- **Recall first** when the task depends on prior session context, user/project history, previous decisions, deployment history, or phrases like "last time", "previous decision", or "what did we decide?"
   - Simple recall: `engram find "<query>"`
   - Entity recall: `engram who "<name>"`
   - Goal-aware recall: `engram-advanced context-search "<query>" --goal task_handoff`
-- **Save durable facts** after decisions, completed investigations, release/deploy outcomes, unusual repo conventions, user preferences, important names/roles, and root causes that should survive this session.
+- **Save durable facts** after architectural/product/process decisions, completed investigations with reusable conclusions, release/deploy outcomes, unusual repo conventions, stable user preferences, important names/roles, and confirmed root causes that should survive this session.
   - Free text: `engram save "<durable fact or decision>"`
   - Entity fact: `engram remember "<entity>" "<fact>"`
+- **Before saving**, ask: "Will this still matter to a future agent in a month?" If not, keep it in the active thread or plan instead.
 - **Transfer work intentionally** when handing work to another agent or resuming a substantial session:
   - `engram-advanced context-transfer <source-session-id> <target-agent-id>`
-- **Review memory health occasionally** during long-running work or before major handoff/release:
+- **Review memory health only when useful** during long-running work, before major handoff/release, or when Engram behavior seems unreliable:
   - `engram status`
   - `engram-advanced operations-review`
 
@@ -155,7 +156,12 @@ Do not store noisy or temporary data:
 - speculation that has not been verified
 - obvious facts already encoded in source code or docs
 
-When saving, write short, factual sentences. Prefer `Decision: ...`, `Convention: ...`, `Root cause: ...`, `User preference: ...`, or `Release note: ...` prefixes so future agents can search and understand the memory quickly.
+When saving, write one searchable atomic fact using this shape:
+`<Prefix>: <stable subject/entity> <durable conclusion>; <reason/symptom/fix when useful>.`
+
+Use these exact prefixes only: `Decision:`, `Convention:`, `Root cause:`, `User preference:`, `Release note:`.
+
+Include likely future search terms such as repo name, file name, service name, feature name, error symptom, config key, command, or tool name. Avoid vague pronouns like "this", "that", or "it"; repeat the stable subject instead.
 
 If `engram-ctx` hooks or MCP tools are installed, prefer their normal automatic indexing for large tool outputs. Use manual `engram save` only for the distilled conclusion, not the full output.
 
